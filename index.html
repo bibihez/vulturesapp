@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+  <title>Vultures 🦅</title>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --accent: #e8ff47;
+      --accent-dim: #9aaa2e;
+      --danger: #ff4747;
+      --text: #f0f0f0;
+      --text-dim: #666;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .screen {
+      display: none;
+      height: 100dvh;
+      flex-direction: column;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    #start-screen {
+      justify-content: center;
+      align-items: center;
+      gap: 32px;
+      padding: 40px 24px;
+      text-align: center;
+      background: radial-gradient(ellipse at 50% 0%, #1a1a1a 0%, var(--bg) 70%);
+    }
+
+    .vulture-logo {
+      font-size: 64px;
+      line-height: 1;
+      filter: grayscale(0.3);
+    }
+
+    #start-screen h1 {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 36px;
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+
+    #start-screen h1 span {
+      color: var(--accent);
+    }
+
+    #start-screen p {
+      color: var(--text-dim);
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 320px;
+    }
+
+    .start-btn {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 18px 48px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 18px;
+      border-radius: 60px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 0 30px rgba(232, 255, 71, 0.2);
+      letter-spacing: 1px;
+    }
+
+    .start-btn:active {
+      transform: scale(0.96);
+      box-shadow: 0 0 10px rgba(232, 255, 71, 0.1);
+    }
+
+    .tip {
+      background: var(--surface);
+      border: 1px solid #222;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      max-width: 320px;
+      text-align: left;
+    }
+
+    .tip strong {
+      color: var(--accent);
+    }
+
+    #camera-screen {
+      position: relative;
+      background: #000;
+    }
+
+    .camera-container {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    #video-feed {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: none;
+      background: #000;
+    }
+
+    #pose-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    #silhouette-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+
+    #silhouette-overlay.hidden {
+      opacity: 0;
+    }
+
+    .silhouette-guide {
+      width: 55%;
+      max-width: 220px;
+      opacity: 0.3;
+    }
+
+    .placement-msg {
+      position: absolute;
+      bottom: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 13px;
+      color: var(--accent);
+      white-space: nowrap;
+      border: 1px solid rgba(232, 255, 71, 0.2);
+      max-width: calc(100vw - 32px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 10;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+      padding-top: 24px;
+    }
+
+    .rep-counter {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 72px;
+      color: var(--accent);
+      line-height: 1;
+      text-shadow: 0 0 40px rgba(232, 255, 71, 0.4);
+      transition: transform 0.1s;
+    }
+
+    .rep-counter.bump {
+      transform: scale(1.15);
+    }
+
+    .rep-label {
+      font-size: 13px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .timer-display {
+      font-family: 'Space Mono', monospace;
+      font-size: 20px;
+      color: var(--text);
+      text-align: right;
+    }
+
+    .timer-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    .status-pill {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      z-index: 10;
+      transition: opacity 0.3s, background 0.3s;
+      text-align: center;
+      max-width: calc(100vw - 40px);
+    }
+
+    .status-pill.down {
+      background: rgba(255, 71, 71, 0.8);
+      color: #fff;
+    }
+
+    .status-pill.up {
+      background: rgba(232, 255, 71, 0.85);
+      color: #000;
+    }
+
+    .status-pill.hidden {
+      opacity: 0;
+    }
+
+    .camera-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 20px;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      display: flex;
+      justify-content: center;
+      z-index: 10;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+    }
+
+    .stop-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 4px solid var(--danger);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .stop-btn:active {
+      background: rgba(255, 71, 71, 0.2);
+    }
+
+    .stop-inner {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--danger);
+    }
+
+    #result-screen {
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      padding: 40px 24px;
+      text-align: center;
+      background: radial-gradient(ellipse at 50% 30%, #1a1a0a 0%, var(--bg) 70%);
+    }
+
+    .result-label {
+      font-size: 16px;
+      color: var(--text-dim);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .result-stats {
+      display: flex;
+      gap: 24px;
+      margin: 8px 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .stat-box {
+      background: var(--surface);
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 12px 20px;
+      text-align: center;
+      min-width: 120px;
+    }
+
+    .stat-value {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 22px;
+      color: var(--text);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .confirm-btn {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 16px 40px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 16px;
+      border-radius: 60px;
+      cursor: pointer;
+      width: 100%;
+      max-width: 320px;
+      letter-spacing: 1px;
+      box-shadow: 0 0 30px rgba(232, 255, 71, 0.2);
+    }
+
+    .confirm-btn:active {
+      transform: scale(0.97);
+    }
+
+    .edit-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .edit-btn {
+      background: none;
+      border: 1px solid #333;
+      color: var(--text-dim);
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-family: 'Space Mono', monospace;
+      font-size: 22px;
+      cursor: pointer;
+      min-width: 48px;
+    }
+
+    .edit-btn:active {
+      background: #222;
+    }
+
+    .edit-count {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 48px;
+      color: var(--accent);
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .retry-link {
+      color: var(--text-dim);
+      font-size: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      z-index: 999;
+      transition: opacity 0.4s;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loader {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #222;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-text {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="loading-overlay" id="loading">
+    <div class="loader"></div>
+    <div class="loading-text">Chargement de MediaPipe...</div>
+  </div>
+
+  <div class="screen active" id="start-screen">
+    <div class="vulture-logo">🦅</div>
+    <h1>FAIS TES<br><span>POMPES</span></h1>
+    <p>Le vautour compte tout. Pose ton tel, lance la caméra, et montre ce que t'as.</p>
+
+    <div class="tip">
+      <strong>💡 Placement conseillé :</strong><br />
+      Pose ton téléphone de profil, idéalement avec la caméra arrière. Recule pour qu’on voie tout ton corps.
+      Commence bras tendus en haut.
+    </div>
+
+    <button class="start-btn" id="btn-start">GO</button>
+  </div>
+
+  <div class="screen" id="camera-screen">
+    <div class="camera-container">
+      <video id="video-feed" autoplay playsinline muted></video>
+      <canvas id="pose-canvas"></canvas>
+
+      <div id="silhouette-overlay">
+        <svg class="silhouette-guide" viewBox="0 0 200 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="100" cy="60" rx="22" ry="26" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
+          <line x1="100" y1="86" x2="100" y2="180" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
+          <line x1="100" y1="110" x2="55" y2="155" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
+          <line x1="100" y1="110" x2="145" y2="155" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
+          <line x1="100" y1="180" x2="70" y2="280" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
+          <line x1="100" y1="180" x2="130" y2="280" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
+          <line x1="70" y1="280" x2="60" y2="330" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
+          <line x1="130" y1="280" x2="140" y2="330" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
+        </svg>
+        <div class="placement-msg" id="placement-msg">Place-toi de profil, corps entier visible</div>
+      </div>
+
+      <div class="hud">
+        <div>
+          <div class="rep-counter" id="rep-count">0</div>
+          <div class="rep-label">POMPES</div>
+        </div>
+        <div>
+          <div class="timer-display" id="timer">00:00</div>
+          <div class="timer-label">DURÉE</div>
+        </div>
+      </div>
+
+      <div class="status-pill hidden" id="status-pill">—</div>
+
+      <div class="camera-bottom">
+        <button class="stop-btn" id="btn-stop" aria-label="Arrêter">
+          <div class="stop-inner"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="result-screen">
+    <div class="vulture-logo">🦅</div>
+    <div class="result-label">POMPES COMPTÉES</div>
+
+    <div class="edit-row">
+      <button class="edit-btn" id="btn-minus">−</button>
+      <div class="edit-count" id="result-count">0</div>
+      <button class="edit-btn" id="btn-plus">+</button>
+    </div>
+
+    <div class="result-stats">
+      <div class="stat-box">
+        <div class="stat-value" id="result-time">0:00</div>
+        <div class="stat-label">DURÉE</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="result-avg">0</div>
+        <div class="stat-label">POMPES/MIN</div>
+      </div>
+    </div>
+
+    <button class="confirm-btn" id="btn-confirm">ENVOYER À VULTURES</button>
+    <div class="retry-link" id="btn-retry">Recommencer</div>
+  </div>
+
+  <script>
+    let reps = 0;
+    let timerInterval = null;
+    let startTime = null;
+    let elapsedSeconds = 0;
+    let poseReady = false;
+    let personDetected = false;
+    let silhouetteHidden = false;
+    let finalCount = 0;
+
+    let phase = 'waiting_start';
+    let lastRepTime = 0;
+    let downHoldStart = null;
+    let upHoldStart = null;
+
+    let baselineShoulderY = null;
+    let calibrationFrames = 0;
+    let shoulderYHistory = [];
+    let processingFrame = false;
+    let frameLoopActive = false;
+    let currentFacingMode = 'environment';
+
+    const ANGLE_HISTORY = [];
+    const SMOOTH_WINDOW = 4;
+    const SHOULDER_WINDOW = 5;
+
+    const DOWN_THRESHOLD = 95;
+    const UP_THRESHOLD = 155;
+
+    const REP_COOLDOWN_MS = 700;
+    const MIN_DOWN_HOLD_MS = 120;
+    const MIN_UP_HOLD_MS = 120;
+    const CALIBRATION_FRAMES = 15;
+
+    const $loading = document.getElementById('loading');
+    const $video = document.getElementById('video-feed');
+    const $canvas = document.getElementById('pose-canvas');
+    const $repCount = document.getElementById('rep-count');
+    const $timer = document.getElementById('timer');
+    const $silhouette = document.getElementById('silhouette-overlay');
+    const $placementMsg = document.getElementById('placement-msg');
+    const $statusPill = document.getElementById('status-pill');
+    const $resultCount = document.getElementById('result-count');
+    const $resultTime = document.getElementById('result-time');
+    const $resultAvg = document.getElementById('result-avg');
+
+    const ctx = $canvas.getContext('2d');
+
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      tg.setHeaderColor('#0a0a0a');
+      tg.setBackgroundColor('#0a0a0a');
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function getAngle(a, b, c) {
+      const radians =
+        Math.atan2(c.y - b.y, c.x - b.x) -
+        Math.atan2(a.y - b.y, a.x - b.x);
+
+      let angle = Math.abs(radians * 180 / Math.PI);
+      if (angle > 180) angle = 360 - angle;
+      return angle;
+    }
+
+    function smoothAngle(newAngle) {
+      ANGLE_HISTORY.push(newAngle);
+      if (ANGLE_HISTORY.length > SMOOTH_WINDOW) ANGLE_HISTORY.shift();
+      return ANGLE_HISTORY.reduce((a, b) => a + b, 0) / ANGLE_HISTORY.length;
+    }
+
+    function smoothValue(arr, value, maxLen) {
+      arr.push(value);
+      if (arr.length > maxLen) arr.shift();
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    function hasReliablePushupPose(lm) {
+      const needed = [11, 12, 13, 14, 15, 16, 23, 24, 27, 28];
+      return needed.every(i => lm[i] && (lm[i].visibility ?? 0) > 0.7);
+    }
+
+    function getElbowAngle(lm) {
+      const leftShoulder = lm[11];
+      const leftElbow = lm[13];
+      const leftWrist = lm[15];
+      const rightShoulder = lm[12];
+      const rightElbow = lm[14];
+      const rightWrist = lm[16];
+
+      const leftVisible =
+        leftShoulder.visibility > 0.7 &&
+        leftElbow.visibility > 0.7 &&
+        leftWrist.visibility > 0.7;
+
+      const rightVisible =
+        rightShoulder.visibility > 0.7 &&
+        rightElbow.visibility > 0.7 &&
+        rightWrist.visibility > 0.7;
+
+      if (leftVisible && rightVisible) {
+        const leftAngle = getAngle(leftShoulder, leftElbow, leftWrist);
+        const rightAngle = getAngle(rightShoulder, rightElbow, rightWrist);
+        return (leftAngle + rightAngle) / 2;
+      }
+
+      if (leftVisible) return getAngle(leftShoulder, leftElbow, leftWrist);
+      if (rightVisible) return getAngle(rightShoulder, rightElbow, rightWrist);
+
+      return null;
+    }
+
+    function getBodyLineAngle(lm) {
+      const leftOk =
+        lm[11].visibility > 0.7 &&
+        lm[23].visibility > 0.7 &&
+        lm[27].visibility > 0.7;
+
+      const rightOk =
+        lm[12].visibility > 0.7 &&
+        lm[24].visibility > 0.7 &&
+        lm[28].visibility > 0.7;
+
+      if (leftOk && rightOk) {
+        const left = getAngle(lm[11], lm[23], lm[27]);
+        const right = getAngle(lm[12], lm[24], lm[28]);
+        return (left + right) / 2;
+      }
+
+      if (leftOk) return getAngle(lm[11], lm[23], lm[27]);
+      if (rightOk) return getAngle(lm[12], lm[24], lm[28]);
+
+      return null;
+    }
+
+    function isBodyStraight(lm) {
+      const bodyAngle = getBodyLineAngle(lm);
+      if (bodyAngle === null) return false;
+      return bodyAngle > 150;
+    }
+
+    function showStatus(state, textOverride = null, persist = false) {
+      const textMap = {
+        down: '↓ DOWN',
+        up: '↑ UP',
+        bad_form: 'GAINAGE',
+        calibrating: 'RESTE EN HAUT',
+      };
+
+      $statusPill.className = 'status-pill ' + (state === 'down' ? 'down' : 'up');
+      $statusPill.textContent = textOverride || textMap[state] || '—';
+      $statusPill.classList.remove('hidden');
+
+      if (!persist) {
+        setTimeout(() => {
+          $statusPill.classList.add('hidden');
+        }, 450);
+      }
+    }
+
+    function bumpCounter() {
+      $repCount.classList.add('bump');
+      setTimeout(() => $repCount.classList.remove('bump'), 150);
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    }
+
+    function updatePlacementGuide() {
+      if (!personDetected && !silhouetteHidden) {
+        $placementMsg.textContent = 'Place-toi de profil, corps entier visible';
+        $silhouette.classList.remove('hidden');
+      }
+    }
+
+    function startTimer() {
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        const m = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+        const s = String(elapsedSeconds % 60).padStart(2, '0');
+        $timer.textContent = `${m}:${s}`;
+      }, 200);
+    }
+
+    function stopTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function drawSkeleton(lm) {
+      ctx.clearRect(0, 0, $canvas.width, $canvas.height);
+
+      const connections = [
+        [11, 13], [13, 15],
+        [12, 14], [14, 16],
+        [11, 12],
+        [11, 23], [12, 24],
+        [23, 24],
+        [23, 25], [25, 27],
+        [24, 26], [26, 28],
+      ];
+
+      ctx.strokeStyle = 'rgba(232, 255, 71, 0.6)';
+      ctx.lineWidth = 3;
+
+      connections.forEach(([i, j]) => {
+        const a = lm[i], b = lm[j];
+        if ((a.visibility ?? 0) > 0.5 && (b.visibility ?? 0) > 0.5) {
+          ctx.beginPath();
+          ctx.moveTo(a.x * $canvas.width, a.y * $canvas.height);
+          ctx.lineTo(b.x * $canvas.width, b.y * $canvas.height);
+          ctx.stroke();
+        }
+      });
+
+      [11, 12, 13, 14, 15, 16, 23, 24, 27, 28].forEach(i => {
+        const p = lm[i];
+        if ((p.visibility ?? 0) > 0.5) {
+          ctx.beginPath();
+          ctx.arc(p.x * $canvas.width, p.y * $canvas.height, 5, 0, 2 * Math.PI);
+          ctx.fillStyle = 'rgba(232, 255, 71, 0.9)';
+          ctx.fill();
+        }
+      });
+    }
+
+    function onResults(results) {
+      $canvas.width = $video.videoWidth || 640;
+      $canvas.height = $video.videoHeight || 480;
+
+      ctx.clearRect(0, 0, $canvas.width, $canvas.height);
+
+      if (!results.poseLandmarks) {
+        personDetected = false;
+        updatePlacementGuide();
+        return;
+      }
+
+      const lm = results.poseLandmarks;
+      personDetected = true;
+
+      drawSkeleton(lm);
+
+      if (!hasReliablePushupPose(lm)) {
+        $placementMsg.textContent = 'Recule un peu, on doit voir tout ton corps';
+        updatePlacementGuide();
+        return;
+      }
+
+      const elbowAngleRaw = getElbowAngle(lm);
+      if (elbowAngleRaw === null) return;
+
+      const elbowAngle = smoothAngle(elbowAngleRaw);
+      const bodyStraight = isBodyStraight(lm);
+
+      const shoulderY = (lm[11].y + lm[12].y) / 2;
+      const smoothShoulderY = smoothValue(shoulderYHistory, shoulderY, SHOULDER_WINDOW);
+
+      if (!silhouetteHidden) {
+        $silhouette.classList.add('hidden');
+        silhouetteHidden = true;
+      }
+
+      if (!startTime) startTimer();
+
+      if (phase === 'waiting_start') {
+        if (!bodyStraight) {
+          $placementMsg.textContent = 'Mets ton corps bien droit';
+          showStatus('bad_form', 'GAINAGE', true);
+          return;
+        }
+
+        if (elbowAngle > 145) {
+          calibrationFrames++;
+          baselineShoulderY = baselineShoulderY === null
+            ? smoothShoulderY
+            : ((baselineShoulderY * (calibrationFrames - 1)) + smoothShoulderY) / calibrationFrames;
+
+          $placementMsg.textContent = `Reste en position haute... ${Math.max(0, CALIBRATION_FRAMES - calibrationFrames)}`;
+          showStatus('calibrating', 'RESTE EN HAUT', true);
+
+          if (calibrationFrames >= CALIBRATION_FRAMES) {
+            phase = 'up';
+            $placementMsg.textContent = 'C’est bon. Fais tes pompes.';
+            $statusPill.classList.add('hidden');
+          }
+
+          return;
+        } else {
+          calibrationFrames = 0;
+          baselineShoulderY = null;
+          $placementMsg.textContent = 'Commence bras tendus en haut';
+          showStatus('calibrating', 'BRAS TENDUS', true);
+          return;
+        }
+      }
+
+      if (!bodyStraight) {
+        $placementMsg.textContent = 'Garde le corps droit';
+        showStatus('bad_form', 'GAINAGE', true);
+        return;
+      } else {
+        $placementMsg.textContent = 'Continue';
+      }
+
+      const now = Date.now();
+      const shoulderDrop = baselineShoulderY !== null ? (smoothShoulderY - baselineShoulderY) : 0;
+
+      const isLowEnough = elbowAngle < DOWN_THRESHOLD && shoulderDrop > 0.035;
+      const isHighEnough = elbowAngle > UP_THRESHOLD && shoulderDrop < 0.02;
+
+      if (isLowEnough) {
+        if (phase !== 'down') {
+          if (!downHoldStart) downHoldStart = now;
+
+          if (now - downHoldStart >= MIN_DOWN_HOLD_MS) {
+            phase = 'down';
+            upHoldStart = null;
+            showStatus('down');
+          }
+        }
+      } else {
+        downHoldStart = null;
+      }
+
+      if (isHighEnough) {
+        if (phase === 'down') {
+          if (!upHoldStart) upHoldStart = now;
+
+          if (
+            now - upHoldStart >= MIN_UP_HOLD_MS &&
+            now - lastRepTime >= REP_COOLDOWN_MS
+          ) {
+            phase = 'up';
+            lastRepTime = now;
+            reps++;
+            $repCount.textContent = reps;
+            bumpCounter();
+            showStatus('up');
+          }
+        }
+      } else {
+        upHoldStart = null;
+      }
+    }
+
+    let pose;
+
+    async function initMediaPipe() {
+      try {
+        pose = new Pose({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
+        });
+
+        pose.setOptions({
+          modelComplexity: 2,
+          smoothLandmarks: true,
+          enableSegmentation: false,
+          minDetectionConfidence: 0.7,
+          minTrackingConfidence: 0.7,
+        });
+
+        pose.onResults(onResults);
+        poseReady = true;
+      } catch (err) {
+        console.error('Erreur MediaPipe:', err);
+        alert('Impossible de charger MediaPipe.');
+      } finally {
+        $loading.classList.add('hidden');
+      }
+    }
+
+    async function getBestCameraStream() {
+      try {
+        currentFacingMode = 'environment';
+        return await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false,
+        });
+      } catch (err) {
+        console.warn('Caméra arrière indisponible, fallback selfie:', err);
+        currentFacingMode = 'user';
+        return await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false,
+        });
+      }
+    }
+
+    async function startCamera() {
+      const stream = await getBestCameraStream();
+      $video.srcObject = stream;
+      await $video.play();
+
+      frameLoopActive = true;
+
+      if (!processingFrame) {
+        processingFrame = true;
+        processFrameLoop();
+      }
+    }
+
+    async function processFrameLoop() {
+      if (!frameLoopActive) {
+        processingFrame = false;
+        return;
+      }
+
+      try {
+        if (
+          document.getElementById('camera-screen').classList.contains('active') &&
+          poseReady &&
+          $video.readyState >= 2 &&
+          pose
+        ) {
+          await pose.send({ image: $video });
+        }
+      } catch (err) {
+        console.error('Erreur pendant le traitement pose:', err);
+      }
+
+      requestAnimationFrame(processFrameLoop);
+    }
+
+    function stopCamera() {
+      frameLoopActive = false;
+
+      const stream = $video.srcObject;
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        $video.srcObject = null;
+      }
+    }
+
+    function showResult() {
+      stopTimer();
+      stopCamera();
+
+      finalCount = reps;
+      $resultCount.textContent = finalCount;
+
+      const m = Math.floor(elapsedSeconds / 60);
+      const s = elapsedSeconds % 60;
+      $resultTime.textContent = `${m}:${String(s).padStart(2, '0')}`;
+
+      const ppm = elapsedSeconds > 0 ? Math.round(finalCount / (elapsedSeconds / 60)) : 0;
+      $resultAvg.textContent = ppm;
+
+      showScreen('result-screen');
+    }
+
+    function sendResult() {
+      const data = JSON.stringify({
+        reps: finalCount,
+        duration_seconds: elapsedSeconds,
+        method: 'miniapp-mediapipe-live-v2',
+        camera_facing_mode: currentFacingMode,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (tg?.sendData) {
+        tg.sendData(data);
+      } else {
+        console.log('Would send to Telegram:', data);
+        alert(`Envoyé : ${finalCount} pompes en ${elapsedSeconds}s`);
+      }
+    }
+
+    function resetSessionState() {
+      reps = 0;
+      elapsedSeconds = 0;
+      startTime = null;
+      finalCount = 0;
+      personDetected = false;
+      silhouetteHidden = false;
+
+      phase = 'waiting_start';
+      lastRepTime = 0;
+      downHoldStart = null;
+      upHoldStart = null;
+      baselineShoulderY = null;
+      calibrationFrames = 0;
+
+      ANGLE_HISTORY.length = 0;
+      shoulderYHistory = [];
+
+      $repCount.textContent = '0';
+      $timer.textContent = '00:00';
+      $silhouette.classList.remove('hidden');
+      $placementMsg.textContent = 'Place-toi de profil, corps entier visible';
+      $statusPill.classList.add('hidden');
+
+      ctx.clearRect(0, 0, $canvas.width, $canvas.height);
+    }
+
+    document.getElementById('btn-start').addEventListener('click', async () => {
+      try {
+        resetSessionState();
+        showScreen('camera-screen');
+        await startCamera();
+      } catch (err) {
+        console.error('Erreur démarrage caméra:', err);
+        alert('Impossible d’accéder à la caméra. Vérifie les permissions.');
+        showScreen('start-screen');
+      }
+    });
+
+    document.getElementById('btn-stop').addEventListener('click', showResult);
+
+    document.getElementById('btn-minus').addEventListener('click', () => {
+      if (finalCount > 0) {
+        finalCount--;
+        $resultCount.textContent = finalCount;
+      }
+    });
+
+    document.getElementById('btn-plus').addEventListener('click', () => {
+      finalCount++;
+      $resultCount.textContent = finalCount;
+    });
+
+    document.getElementById('btn-confirm').addEventListener('click', sendResult);
+
+    document.getElementById('btn-retry').addEventListener('click', () => {
+      resetSessionState();
+      showScreen('start-screen');
+    });
+
+    initMediaPipe();
+  </script>
+</body>
+</html>
