@@ -507,6 +507,14 @@
 
       <div class="status-pill hidden" id="status-pill">—</div>
 
+      <!-- Debug: remove after testing -->
+      <div id="debug-hud" style="position:absolute;bottom:100px;left:12px;z-index:20;font-family:monospace;font-size:11px;color:#0f0;background:rgba(0,0,0,0.7);padding:8px 10px;border-radius:8px;line-height:1.6;pointer-events:none;">
+        <div>elbow: <span id="dbg-elbow">-</span>°</div>
+        <div>shoulderDrop: <span id="dbg-sdrop">-</span></div>
+        <div>phase: <span id="dbg-phase">-</span></div>
+        <div>reps: <span id="dbg-reps">-</span></div>
+      </div>
+
       <div class="camera-bottom">
         <button class="stop-btn" id="btn-stop" aria-label="Arrêter">
           <div class="stop-inner"></div>
@@ -566,13 +574,22 @@
     const SMOOTH_WINDOW = 5;
     const SHOULDER_WINDOW = 5;
 
-    const DOWN_THRESHOLD = 108;
-    const UP_THRESHOLD = 148;
+    // Shoulder-Y primary detection (works from front/selfie)
+    // shoulderDrop is normalized Y movement — 0.04 = ~4% of frame height
+    const SHOULDER_DOWN_THRESHOLD = 0.035;  // min drop to count as "down"
+    const SHOULDER_UP_THRESHOLD = 0.015;    // max drop to count as "back up"
 
-    const REP_COOLDOWN_MS = 700;
-    const MIN_DOWN_HOLD_MS = 120;
-    const MIN_UP_HOLD_MS = 120;
+    // Elbow angle secondary signal (relaxed thresholds for front view)
+    const ELBOW_DOWN_HINT = 140;   // below this = likely bending (relaxed from 108)
+    const ELBOW_UP_HINT = 155;     // above this = likely extended
+
+    const REP_COOLDOWN_MS = 500;   // faster reps allowed (was 700)
+    const MIN_DOWN_HOLD_MS = 80;   // quicker detection (was 120)
+    const MIN_UP_HOLD_MS = 80;
     const CALIBRATION_FRAMES = 15;
+
+    // Nose-Y tracking for additional signal
+    let noseYHistory = [];
 
     const $loading = document.getElementById('loading');
     const $video = document.getElementById('video-feed');
@@ -830,13 +847,36 @@
         }
       }
 
-      $placementMsg.textContent = 'Continue';
+      $placementMsg.textContent = '';
 
       const now = Date.now();
       const shoulderDrop = baselineShoulderY !== null ? (smoothShoulderY - baselineShoulderY) : 0;
 
-      const isLowEnough = elbowAngle < DOWN_THRESHOLD && shoulderDrop > 0.02;
-      const isHighEnough = elbowAngle > UP_THRESHOLD && shoulderDrop < 0.025;
+      // Also track nose Y for extra confidence
+      const noseY = (lm[0]?.visibility ?? 0) > 0.5 ? lm[0].y : null;
+      const smoothNoseY = noseY !== null ? smoothValue(noseYHistory, noseY, SHOULDER_WINDOW) : null;
+      const noseBaseline = baselineShoulderY !== null ? baselineShoulderY - 0.15 : null;
+      const noseDrop = (smoothNoseY !== null && noseBaseline !== null) ? (smoothNoseY - noseBaseline) : shoulderDrop;
+
+      // Primary signal: shoulder Y drop (works great from front)
+      // Secondary signal: elbow angle (helps but not required)
+      const elbowHintDown = elbowAngle < ELBOW_DOWN_HINT;
+      const elbowHintUp = elbowAngle > ELBOW_UP_HINT;
+
+      // DOWN = shoulders dropped significantly
+      const isLowEnough = shoulderDrop > SHOULDER_DOWN_THRESHOLD;
+      // UP = shoulders back near baseline
+      const isHighEnough = shoulderDrop < SHOULDER_UP_THRESHOLD;
+
+      // Debug HUD
+      const dbE = document.getElementById('dbg-elbow');
+      const dbS = document.getElementById('dbg-sdrop');
+      const dbP = document.getElementById('dbg-phase');
+      const dbR = document.getElementById('dbg-reps');
+      if (dbE) dbE.textContent = elbowAngle.toFixed(1);
+      if (dbS) dbS.textContent = shoulderDrop.toFixed(4);
+      if (dbP) dbP.textContent = phase;
+      if (dbR) dbR.textContent = reps;
 
       if (isLowEnough) {
         if (phase !== 'down') {
@@ -1018,6 +1058,7 @@
       baselineShoulderY = null;
       calibrationFrames = 0;
       shoulderYHistory = [];
+      noseYHistory = [];
       ANGLE_HISTORY.length = 0;
 
       $repCount.textContent = '0';
