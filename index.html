@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
   />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Vultures 🦅</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&display=swap');
@@ -20,6 +20,7 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     :root {
@@ -29,23 +30,31 @@
       --accent-dim: #9aaa2e;
       --danger: #ff4747;
       --text: #f0f0f0;
-      --text-dim: #666;
+      --text-dim: #777;
       --radius: 16px;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
     }
 
     body {
       font-family: 'Space Mono', monospace;
-      background: var(--bg);
       color: var(--text);
       height: 100dvh;
-      overflow: hidden;
+      min-height: 100dvh;
       -webkit-user-select: none;
       user-select: none;
     }
 
     .screen {
       display: none;
+      width: 100vw;
       height: 100dvh;
+      min-height: 100dvh;
       flex-direction: column;
     }
 
@@ -56,8 +65,8 @@
     #start-screen {
       justify-content: center;
       align-items: center;
-      gap: 32px;
-      padding: 40px 24px;
+      gap: 28px;
+      padding: 36px 22px;
       text-align: center;
       background: radial-gradient(ellipse at 50% 0%, #1a1a1a 0%, var(--bg) 70%);
     }
@@ -65,14 +74,14 @@
     .vulture-logo {
       font-size: 64px;
       line-height: 1;
-      filter: grayscale(0.3);
+      filter: grayscale(0.2);
     }
 
     #start-screen h1 {
       font-family: 'Archivo Black', sans-serif;
       font-size: 36px;
       letter-spacing: -1px;
-      line-height: 1.1;
+      line-height: 1.05;
     }
 
     #start-screen h1 span {
@@ -84,6 +93,22 @@
       font-size: 13px;
       line-height: 1.6;
       max-width: 320px;
+    }
+
+    .tip {
+      background: var(--surface);
+      border: 1px solid #222;
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.55;
+      max-width: 320px;
+      text-align: left;
+    }
+
+    .tip strong {
+      color: var(--accent);
     }
 
     .start-btn {
@@ -101,69 +126,51 @@
     }
 
     .start-btn:active {
-      transform: scale(0.96);
-      box-shadow: 0 0 10px rgba(232, 255, 71, 0.1);
-    }
-
-    .tip {
-      background: var(--surface);
-      border: 1px solid #222;
-      border-radius: var(--radius);
-      padding: 16px 20px;
-      font-size: 12px;
-      color: var(--text-dim);
-      line-height: 1.5;
-      max-width: 320px;
-      text-align: left;
-    }
-
-    .tip strong {
-      color: var(--accent);
+      transform: scale(0.97);
     }
 
     #camera-screen {
-      position: relative;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
       background: #000;
     }
 
     .camera-container {
       position: relative;
-      flex: 1;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
+      background: #000;
     }
 
     #video-feed {
       position: absolute;
-      top: 0;
-      left: 0;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: none;
+      transform: scaleX(-1);
       background: #000;
     }
 
     #pose-canvas {
       position: absolute;
-      top: 0;
-      left: 0;
+      inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
       pointer-events: none;
     }
 
     #silhouette-overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       display: flex;
       justify-content: center;
       align-items: center;
       pointer-events: none;
-      transition: opacity 0.5s;
+      transition: opacity 0.35s ease;
     }
 
     #silhouette-overlay.hidden {
@@ -171,25 +178,26 @@
     }
 
     .silhouette-guide {
-      width: 55%;
-      max-width: 220px;
-      opacity: 0.3;
+      width: 58%;
+      max-width: 260px;
+      opacity: 0.22;
     }
 
     .placement-msg {
       position: absolute;
-      bottom: 25%;
       left: 50%;
+      bottom: 25%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.72);
       backdrop-filter: blur(8px);
-      padding: 10px 20px;
-      border-radius: 30px;
-      font-size: 13px;
-      color: var(--accent);
-      white-space: nowrap;
       border: 1px solid rgba(232, 255, 71, 0.2);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 13px;
+      text-align: center;
       max-width: calc(100vw - 32px);
+      white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -199,13 +207,12 @@
       top: 0;
       left: 0;
       right: 0;
-      padding: 16px 20px;
+      z-index: 10;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      z-index: 10;
-      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
-      padding-top: 24px;
+      padding: 22px 20px 0 20px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.62) 0%, transparent 100%);
     }
 
     .rep-counter {
@@ -213,7 +220,7 @@
       font-size: 72px;
       color: var(--accent);
       line-height: 1;
-      text-shadow: 0 0 40px rgba(232, 255, 71, 0.4);
+      text-shadow: 0 0 40px rgba(232, 255, 71, 0.35);
       transition: transform 0.1s;
     }
 
@@ -229,7 +236,6 @@
     }
 
     .timer-display {
-      font-family: 'Space Mono', monospace;
       font-size: 20px;
       color: var(--text);
       text-align: right;
@@ -246,42 +252,42 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      padding: 8px 20px;
-      border-radius: 30px;
+      z-index: 10;
+      border-radius: 999px;
+      padding: 8px 18px;
       font-size: 14px;
       font-weight: 700;
       letter-spacing: 1px;
-      z-index: 10;
-      transition: opacity 0.3s, background 0.3s;
       text-align: center;
       max-width: calc(100vw - 40px);
-    }
-
-    .status-pill.down {
-      background: rgba(255, 71, 71, 0.8);
-      color: #fff;
-    }
-
-    .status-pill.up {
-      background: rgba(232, 255, 71, 0.85);
-      color: #000;
+      transition: opacity 0.3s ease;
     }
 
     .status-pill.hidden {
       opacity: 0;
     }
 
+    .status-pill.down {
+      background: rgba(255, 71, 71, 0.82);
+      color: #fff;
+    }
+
+    .status-pill.up {
+      background: rgba(232, 255, 71, 0.88);
+      color: #000;
+    }
+
     .camera-bottom {
       position: absolute;
-      bottom: 0;
       left: 0;
       right: 0;
-      padding: 20px;
-      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      bottom: 0;
+      z-index: 10;
       display: flex;
       justify-content: center;
-      z-index: 10;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+      padding: 20px;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
     }
 
     .stop-btn {
@@ -290,15 +296,14 @@
       border-radius: 50%;
       border: 4px solid var(--danger);
       background: transparent;
-      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s;
+      cursor: pointer;
     }
 
     .stop-btn:active {
-      background: rgba(255, 71, 71, 0.2);
+      background: rgba(255, 71, 71, 0.15);
     }
 
     .stop-inner {
@@ -324,10 +329,41 @@
       text-transform: uppercase;
     }
 
+    .edit-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .edit-btn {
+      background: none;
+      border: 1px solid #333;
+      color: var(--text-dim);
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-family: 'Space Mono', monospace;
+      font-size: 22px;
+      cursor: pointer;
+      min-width: 48px;
+    }
+
+    .edit-btn:active {
+      background: #222;
+    }
+
+    .edit-count {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 48px;
+      color: var(--accent);
+      min-width: 80px;
+      text-align: center;
+    }
+
     .result-stats {
       display: flex;
-      gap: 24px;
-      margin: 8px 0;
+      gap: 16px;
+      margin: 6px 0;
       flex-wrap: wrap;
       justify-content: center;
     }
@@ -373,37 +409,6 @@
       transform: scale(0.97);
     }
 
-    .edit-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      justify-content: center;
-    }
-
-    .edit-btn {
-      background: none;
-      border: 1px solid #333;
-      color: var(--text-dim);
-      padding: 10px 20px;
-      border-radius: 30px;
-      font-family: 'Space Mono', monospace;
-      font-size: 22px;
-      cursor: pointer;
-      min-width: 48px;
-    }
-
-    .edit-btn:active {
-      background: #222;
-    }
-
-    .edit-count {
-      font-family: 'Archivo Black', sans-serif;
-      font-size: 48px;
-      color: var(--accent);
-      min-width: 80px;
-      text-align: center;
-    }
-
     .retry-link {
       color: var(--text-dim);
       font-size: 12px;
@@ -414,10 +419,7 @@
 
     .loading-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       background: var(--bg);
       display: flex;
       flex-direction: column;
@@ -425,7 +427,7 @@
       align-items: center;
       gap: 20px;
       z-index: 999;
-      transition: opacity 0.4s;
+      transition: opacity 0.35s ease;
     }
 
     .loading-overlay.hidden {
@@ -443,9 +445,7 @@
     }
 
     @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+      to { transform: rotate(360deg); }
     }
 
     .loading-text {
@@ -455,7 +455,6 @@
   </style>
 </head>
 <body>
-
   <div class="loading-overlay" id="loading">
     <div class="loader"></div>
     <div class="loading-text">Chargement de MediaPipe...</div>
@@ -464,12 +463,11 @@
   <div class="screen active" id="start-screen">
     <div class="vulture-logo">🦅</div>
     <h1>FAIS TES<br><span>POMPES</span></h1>
-    <p>Le vautour compte tout. Pose ton tel, lance la caméra, et montre ce que t'as.</p>
+    <p>Le vautour compte tout. Place ton téléphone, ouvre la caméra selfie et mets-toi bien en face du cadre.</p>
 
     <div class="tip">
       <strong>💡 Placement conseillé :</strong><br />
-      Pose ton téléphone de profil, idéalement avec la caméra arrière. Recule pour qu’on voie tout ton corps.
-      Commence bras tendus en haut.
+      Utilise la caméra selfie. Pose ton téléphone contre un mur ou un support. Mets-toi bien de face avec tout le corps visible. Le squelette à l’écran t’aide à t’ajuster. Commence bras tendus en haut.
     </div>
 
     <button class="start-btn" id="btn-start">GO</button>
@@ -481,17 +479,19 @@
       <canvas id="pose-canvas"></canvas>
 
       <div id="silhouette-overlay">
-        <svg class="silhouette-guide" viewBox="0 0 200 350" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="100" cy="60" rx="22" ry="26" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
-          <line x1="100" y1="86" x2="100" y2="180" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
-          <line x1="100" y1="110" x2="55" y2="155" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
-          <line x1="100" y1="110" x2="145" y2="155" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
-          <line x1="100" y1="180" x2="70" y2="280" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
-          <line x1="100" y1="180" x2="130" y2="280" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
-          <line x1="70" y1="280" x2="60" y2="330" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
-          <line x1="130" y1="280" x2="140" y2="330" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4" opacity="0.5"/>
+        <svg class="silhouette-guide" viewBox="0 0 220 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="110" cy="56" rx="22" ry="24" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="110" y1="80" x2="110" y2="160" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="110" y1="105" x2="65" y2="140" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="110" y1="105" x2="155" y2="140" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="65" y1="140" x2="40" y2="200" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="155" y1="140" x2="180" y2="200" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="110" y1="160" x2="78" y2="255" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="110" y1="160" x2="142" y2="255" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="78" y1="255" x2="70" y2="330" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="142" y1="255" x2="150" y2="330" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
         </svg>
-        <div class="placement-msg" id="placement-msg">Place-toi de profil, corps entier visible</div>
+        <div class="placement-msg" id="placement-msg">Place-toi bien de face, corps entier visible</div>
       </div>
 
       <div class="hud">
@@ -554,20 +554,20 @@
     let lastRepTime = 0;
     let downHoldStart = null;
     let upHoldStart = null;
+    let processingFrame = false;
+    let frameLoopActive = false;
+    let currentFacingMode = 'user';
 
     let baselineShoulderY = null;
     let calibrationFrames = 0;
     let shoulderYHistory = [];
-    let processingFrame = false;
-    let frameLoopActive = false;
-    let currentFacingMode = 'environment';
-
     const ANGLE_HISTORY = [];
-    const SMOOTH_WINDOW = 4;
+
+    const SMOOTH_WINDOW = 5;
     const SHOULDER_WINDOW = 5;
 
-    const DOWN_THRESHOLD = 95;
-    const UP_THRESHOLD = 155;
+    const DOWN_THRESHOLD = 108;
+    const UP_THRESHOLD = 148;
 
     const REP_COOLDOWN_MS = 700;
     const MIN_DOWN_HOLD_MS = 120;
@@ -594,6 +594,7 @@
       tg.expand();
       tg.setHeaderColor('#0a0a0a');
       tg.setBackgroundColor('#0a0a0a');
+      if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
     }
 
     function showScreen(id) {
@@ -623,80 +624,9 @@
       return arr.reduce((a, b) => a + b, 0) / arr.length;
     }
 
-    function hasReliablePushupPose(lm) {
-      const needed = [11, 12, 13, 14, 15, 16, 23, 24, 27, 28];
-      return needed.every(i => lm[i] && (lm[i].visibility ?? 0) > 0.7);
-    }
-
-    function getElbowAngle(lm) {
-      const leftShoulder = lm[11];
-      const leftElbow = lm[13];
-      const leftWrist = lm[15];
-      const rightShoulder = lm[12];
-      const rightElbow = lm[14];
-      const rightWrist = lm[16];
-
-      const leftVisible =
-        leftShoulder.visibility > 0.7 &&
-        leftElbow.visibility > 0.7 &&
-        leftWrist.visibility > 0.7;
-
-      const rightVisible =
-        rightShoulder.visibility > 0.7 &&
-        rightElbow.visibility > 0.7 &&
-        rightWrist.visibility > 0.7;
-
-      if (leftVisible && rightVisible) {
-        const leftAngle = getAngle(leftShoulder, leftElbow, leftWrist);
-        const rightAngle = getAngle(rightShoulder, rightElbow, rightWrist);
-        return (leftAngle + rightAngle) / 2;
-      }
-
-      if (leftVisible) return getAngle(leftShoulder, leftElbow, leftWrist);
-      if (rightVisible) return getAngle(rightShoulder, rightElbow, rightWrist);
-
-      return null;
-    }
-
-    function getBodyLineAngle(lm) {
-      const leftOk =
-        lm[11].visibility > 0.7 &&
-        lm[23].visibility > 0.7 &&
-        lm[27].visibility > 0.7;
-
-      const rightOk =
-        lm[12].visibility > 0.7 &&
-        lm[24].visibility > 0.7 &&
-        lm[28].visibility > 0.7;
-
-      if (leftOk && rightOk) {
-        const left = getAngle(lm[11], lm[23], lm[27]);
-        const right = getAngle(lm[12], lm[24], lm[28]);
-        return (left + right) / 2;
-      }
-
-      if (leftOk) return getAngle(lm[11], lm[23], lm[27]);
-      if (rightOk) return getAngle(lm[12], lm[24], lm[28]);
-
-      return null;
-    }
-
-    function isBodyStraight(lm) {
-      const bodyAngle = getBodyLineAngle(lm);
-      if (bodyAngle === null) return false;
-      return bodyAngle > 150;
-    }
-
-    function showStatus(state, textOverride = null, persist = false) {
-      const textMap = {
-        down: '↓ DOWN',
-        up: '↑ UP',
-        bad_form: 'GAINAGE',
-        calibrating: 'RESTE EN HAUT',
-      };
-
-      $statusPill.className = 'status-pill ' + (state === 'down' ? 'down' : 'up');
-      $statusPill.textContent = textOverride || textMap[state] || '—';
+    function showStatus(type, text, persist = false) {
+      $statusPill.className = 'status-pill ' + (type === 'down' ? 'down' : 'up');
+      $statusPill.textContent = text;
       $statusPill.classList.remove('hidden');
 
       if (!persist) {
@@ -710,13 +640,6 @@
       $repCount.classList.add('bump');
       setTimeout(() => $repCount.classList.remove('bump'), 150);
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    }
-
-    function updatePlacementGuide() {
-      if (!personDetected && !silhouetteHidden) {
-        $placementMsg.textContent = 'Place-toi de profil, corps entier visible';
-        $silhouette.classList.remove('hidden');
-      }
     }
 
     function startTimer() {
@@ -734,8 +657,73 @@
       timerInterval = null;
     }
 
+    function updatePlacementGuide() {
+      if (!personDetected && !silhouetteHidden) {
+        $placementMsg.textContent = 'Place-toi bien de face, corps entier visible';
+        $silhouette.classList.remove('hidden');
+      }
+    }
+
+    function hasReliableFrontPose(lm) {
+      const needed = [11, 12, 13, 14, 15, 16, 23, 24];
+      return needed.every(i => lm[i] && (lm[i].visibility ?? 0) > 0.6);
+    }
+
+    function getElbowAngle(lm) {
+      const leftVisible =
+        lm[11].visibility > 0.6 &&
+        lm[13].visibility > 0.6 &&
+        lm[15].visibility > 0.6;
+
+      const rightVisible =
+        lm[12].visibility > 0.6 &&
+        lm[14].visibility > 0.6 &&
+        lm[16].visibility > 0.6;
+
+      if (leftVisible && rightVisible) {
+        const leftAngle = getAngle(lm[11], lm[13], lm[15]);
+        const rightAngle = getAngle(lm[12], lm[14], lm[16]);
+        return (leftAngle + rightAngle) / 2;
+      }
+
+      if (leftVisible) return getAngle(lm[11], lm[13], lm[15]);
+      if (rightVisible) return getAngle(lm[12], lm[14], lm[16]);
+
+      return null;
+    }
+
+    function getShoulderWidth(lm) {
+      if (
+        (lm[11].visibility ?? 0) > 0.6 &&
+        (lm[12].visibility ?? 0) > 0.6
+      ) {
+        return Math.abs(lm[11].x - lm[12].x);
+      }
+      return null;
+    }
+
+    function isFacingFrontEnough(lm) {
+      const shoulderWidth = getShoulderWidth(lm);
+      if (shoulderWidth === null) return false;
+      return shoulderWidth > 0.12;
+    }
+
+    function areShouldersLevel(lm) {
+      if (
+        (lm[11].visibility ?? 0) > 0.6 &&
+        (lm[12].visibility ?? 0) > 0.6
+      ) {
+        return Math.abs(lm[11].y - lm[12].y) < 0.08;
+      }
+      return false;
+    }
+
     function drawSkeleton(lm) {
       ctx.clearRect(0, 0, $canvas.width, $canvas.height);
+
+      const mirror = currentFacingMode === 'user';
+      const mapX = (x) => mirror ? (1 - x) * $canvas.width : x * $canvas.width;
+      const mapY = (y) => y * $canvas.height;
 
       const connections = [
         [11, 13], [13, 15],
@@ -747,25 +735,25 @@
         [24, 26], [26, 28],
       ];
 
-      ctx.strokeStyle = 'rgba(232, 255, 71, 0.6)';
+      ctx.strokeStyle = 'rgba(232, 255, 71, 0.66)';
       ctx.lineWidth = 3;
 
       connections.forEach(([i, j]) => {
         const a = lm[i], b = lm[j];
-        if ((a.visibility ?? 0) > 0.5 && (b.visibility ?? 0) > 0.5) {
+        if ((a?.visibility ?? 0) > 0.5 && (b?.visibility ?? 0) > 0.5) {
           ctx.beginPath();
-          ctx.moveTo(a.x * $canvas.width, a.y * $canvas.height);
-          ctx.lineTo(b.x * $canvas.width, b.y * $canvas.height);
+          ctx.moveTo(mapX(a.x), mapY(a.y));
+          ctx.lineTo(mapX(b.x), mapY(b.y));
           ctx.stroke();
         }
       });
 
-      [11, 12, 13, 14, 15, 16, 23, 24, 27, 28].forEach(i => {
+      [11, 12, 13, 14, 15, 16, 23, 24].forEach(i => {
         const p = lm[i];
-        if ((p.visibility ?? 0) > 0.5) {
+        if ((p?.visibility ?? 0) > 0.5) {
           ctx.beginPath();
-          ctx.arc(p.x * $canvas.width, p.y * $canvas.height, 5, 0, 2 * Math.PI);
-          ctx.fillStyle = 'rgba(232, 255, 71, 0.9)';
+          ctx.arc(mapX(p.x), mapY(p.y), 5, 0, 2 * Math.PI);
+          ctx.fillStyle = 'rgba(232, 255, 71, 0.95)';
           ctx.fill();
         }
       });
@@ -774,7 +762,6 @@
     function onResults(results) {
       $canvas.width = $video.videoWidth || 640;
       $canvas.height = $video.videoHeight || 480;
-
       ctx.clearRect(0, 0, $canvas.width, $canvas.height);
 
       if (!results.poseLandmarks) {
@@ -788,17 +775,25 @@
 
       drawSkeleton(lm);
 
-      if (!hasReliablePushupPose(lm)) {
-        $placementMsg.textContent = 'Recule un peu, on doit voir tout ton corps';
-        updatePlacementGuide();
+      if (!hasReliableFrontPose(lm)) {
+        $placementMsg.textContent = 'Recule un peu, on doit voir le haut et le bas du corps';
         return;
+      }
+
+      if (!isFacingFrontEnough(lm)) {
+        $placementMsg.textContent = 'Mets-toi plus de face';
+        showStatus('up', 'PLUS DE FACE', true);
+        return;
+      }
+
+      if (!areShouldersLevel(lm)) {
+        $placementMsg.textContent = 'Redresse-toi face à la caméra';
       }
 
       const elbowAngleRaw = getElbowAngle(lm);
       if (elbowAngleRaw === null) return;
 
       const elbowAngle = smoothAngle(elbowAngleRaw);
-      const bodyStraight = isBodyStraight(lm);
 
       const shoulderY = (lm[11].y + lm[12].y) / 2;
       const smoothShoulderY = smoothValue(shoulderYHistory, shoulderY, SHOULDER_WINDOW);
@@ -811,50 +806,37 @@
       if (!startTime) startTimer();
 
       if (phase === 'waiting_start') {
-        if (!bodyStraight) {
-          $placementMsg.textContent = 'Mets ton corps bien droit';
-          showStatus('bad_form', 'GAINAGE', true);
-          return;
-        }
-
-        if (elbowAngle > 145) {
+        if (elbowAngle > 142) {
           calibrationFrames++;
           baselineShoulderY = baselineShoulderY === null
             ? smoothShoulderY
             : ((baselineShoulderY * (calibrationFrames - 1)) + smoothShoulderY) / calibrationFrames;
 
-          $placementMsg.textContent = `Reste en position haute... ${Math.max(0, CALIBRATION_FRAMES - calibrationFrames)}`;
-          showStatus('calibrating', 'RESTE EN HAUT', true);
+          $placementMsg.textContent = `Reste bras tendus... ${Math.max(0, CALIBRATION_FRAMES - calibrationFrames)}`;
+          showStatus('up', 'BRAS TENDUS', true);
 
           if (calibrationFrames >= CALIBRATION_FRAMES) {
             phase = 'up';
             $placementMsg.textContent = 'C’est bon. Fais tes pompes.';
             $statusPill.classList.add('hidden');
           }
-
           return;
         } else {
           calibrationFrames = 0;
           baselineShoulderY = null;
           $placementMsg.textContent = 'Commence bras tendus en haut';
-          showStatus('calibrating', 'BRAS TENDUS', true);
+          showStatus('up', 'MONTE EN HAUT', true);
           return;
         }
       }
 
-      if (!bodyStraight) {
-        $placementMsg.textContent = 'Garde le corps droit';
-        showStatus('bad_form', 'GAINAGE', true);
-        return;
-      } else {
-        $placementMsg.textContent = 'Continue';
-      }
+      $placementMsg.textContent = 'Continue';
 
       const now = Date.now();
       const shoulderDrop = baselineShoulderY !== null ? (smoothShoulderY - baselineShoulderY) : 0;
 
-      const isLowEnough = elbowAngle < DOWN_THRESHOLD && shoulderDrop > 0.035;
-      const isHighEnough = elbowAngle > UP_THRESHOLD && shoulderDrop < 0.02;
+      const isLowEnough = elbowAngle < DOWN_THRESHOLD && shoulderDrop > 0.02;
+      const isHighEnough = elbowAngle > UP_THRESHOLD && shoulderDrop < 0.025;
 
       if (isLowEnough) {
         if (phase !== 'down') {
@@ -863,7 +845,7 @@
           if (now - downHoldStart >= MIN_DOWN_HOLD_MS) {
             phase = 'down';
             upHoldStart = null;
-            showStatus('down');
+            showStatus('down', '↓ DOWN');
           }
         }
       } else {
@@ -883,7 +865,7 @@
             reps++;
             $repCount.textContent = reps;
             bumpCounter();
-            showStatus('up');
+            showStatus('up', '↑ UP');
           }
         }
       } else {
@@ -919,21 +901,21 @@
 
     async function getBestCameraStream() {
       try {
-        currentFacingMode = 'environment';
+        currentFacingMode = 'user';
         return await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: { ideal: 'environment' },
+            facingMode: 'user',
             width: { ideal: 1280 },
             height: { ideal: 720 }
           },
           audio: false,
         });
       } catch (err) {
-        console.warn('Caméra arrière indisponible, fallback selfie:', err);
-        currentFacingMode = 'user';
+        console.warn('Caméra selfie indisponible, fallback caméra arrière:', err);
+        currentFacingMode = 'environment';
         return await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: 'user',
+            facingMode: { ideal: 'environment' },
             width: { ideal: 1280 },
             height: { ideal: 720 }
           },
@@ -979,7 +961,6 @@
 
     function stopCamera() {
       frameLoopActive = false;
-
       const stream = $video.srcObject;
       if (stream) {
         stream.getTracks().forEach(t => t.stop());
@@ -1008,7 +989,7 @@
       const data = JSON.stringify({
         reps: finalCount,
         duration_seconds: elapsedSeconds,
-        method: 'miniapp-mediapipe-live-v2',
+        method: 'miniapp-mediapipe-front-selfie',
         camera_facing_mode: currentFacingMode,
         timestamp: new Date().toISOString(),
       });
@@ -1033,16 +1014,16 @@
       lastRepTime = 0;
       downHoldStart = null;
       upHoldStart = null;
+
       baselineShoulderY = null;
       calibrationFrames = 0;
-
-      ANGLE_HISTORY.length = 0;
       shoulderYHistory = [];
+      ANGLE_HISTORY.length = 0;
 
       $repCount.textContent = '0';
       $timer.textContent = '00:00';
       $silhouette.classList.remove('hidden');
-      $placementMsg.textContent = 'Place-toi de profil, corps entier visible';
+      $placementMsg.textContent = 'Place-toi bien de face, corps entier visible';
       $statusPill.classList.add('hidden');
 
       ctx.clearRect(0, 0, $canvas.width, $canvas.height);
