@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -69,9 +70,6 @@
     .loader{width:40px;height:40px;border:3px solid #222;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     .loading-text{font-size:13px;color:var(--text-dim)}
-    .posture-badge{position:absolute;top:90px;left:50%;transform:translateX(-50%);z-index:15;border-radius:999px;padding:6px 14px;font-size:11px;font-weight:700;letter-spacing:1px;pointer-events:none;transition:opacity .3s}
-    .posture-badge.pushup{background:rgba(232,255,71,.2);border:1px solid rgba(232,255,71,.4);color:var(--accent)}
-    .posture-badge.standing{background:rgba(255,71,71,.2);border:1px solid rgba(255,71,71,.4);color:var(--danger)}
     #debug-hud{position:absolute;bottom:100px;left:12px;z-index:20;font-family:monospace;font-size:11px;color:#0f0;background:rgba(0,0,0,.7);padding:8px 10px;border-radius:8px;line-height:1.6;pointer-events:none}
   </style>
 </head>
@@ -81,10 +79,12 @@
   <div class="screen active" id="start-screen">
     <div class="vulture-logo">🦅</div>
     <h1>FAIS TES<br><span>POMPES</span></h1>
-    <p>Le vautour compte tout. Pose ton tel contre un mur face à toi et mets-toi en position de pompe.</p>
+    <p>Le vautour compte tout. Pose ton tel contre un mur face a toi et mets-toi en position de pompe.</p>
     <div class="tip">
       <strong>💡 Placement :</strong><br/>
-      Pose ton tel contre le mur au sol, caméra selfie vers toi. Mets-toi en position de pompe face au tel. L'app détecte automatiquement ta position et commence à compter.
+      Pose ton tel contre le mur au sol, camera selfie vers toi.
+      Mets-toi en position de pompe, bras tendus.
+      Reste immobile 2 secondes pour calibrer, puis fais tes pompes !
     </div>
     <button class="start-btn" id="btn-start">GO</button>
   </div>
@@ -101,271 +101,223 @@
           <line x1="110" y1="105" x2="155" y2="140" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
           <line x1="65" y1="140" x2="40" y2="200" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
           <line x1="155" y1="140" x2="180" y2="200" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
-          <line x1="110" y1="160" x2="78" y2="255" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
-          <line x1="110" y1="160" x2="142" y2="255" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
-          <line x1="78" y1="255" x2="70" y2="330" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
-          <line x1="142" y1="255" x2="150" y2="330" stroke="#e8ff47" stroke-width="2" stroke-dasharray="6 4"/>
         </svg>
         <div class="placement-msg" id="placement-msg">Mets-toi en position de pompe</div>
       </div>
       <div class="hud">
         <div><div class="rep-counter" id="rep-count">0</div><div class="rep-label">POMPES</div></div>
-        <div><div class="timer-display" id="timer">00:00</div><div class="timer-label">DURÉE</div></div>
+        <div><div class="timer-display" id="timer">00:00</div><div class="timer-label">DUREE</div></div>
       </div>
-      <div class="status-pill hidden" id="status-pill">—</div>
-      <div class="posture-badge standing" id="posture-badge">DEBOUT</div>
+      <div class="status-pill hidden" id="status-pill">-</div>
       <div id="debug-hud">
-        <div>posture: <span id="dbg-posture">-</span></div>
-        <div>headY: <span id="dbg-heady">-</span></div>
+        <div>noseY: <span id="dbg-nosey">-</span></div>
+        <div>shoulderY: <span id="dbg-shouldery">-</span></div>
         <div>baseline: <span id="dbg-baseline">-</span></div>
         <div>drop: <span id="dbg-drop">-</span></div>
+        <div>threshold: <span id="dbg-thresh">-</span></div>
         <div>phase: <span id="dbg-phase">-</span></div>
         <div>reps: <span id="dbg-reps">-</span></div>
       </div>
       <div class="camera-bottom">
-        <button class="stop-btn" id="btn-stop" aria-label="Arrêter"><div class="stop-inner"></div></button>
+        <button class="stop-btn" id="btn-stop" aria-label="Stop"><div class="stop-inner"></div></button>
       </div>
     </div>
   </div>
 
   <div class="screen" id="result-screen">
     <div class="vulture-logo">🦅</div>
-    <div class="result-label">POMPES COMPTÉES</div>
+    <div class="result-label">POMPES COMPTEES</div>
     <div class="edit-row">
-      <button class="edit-btn" id="btn-minus">−</button>
+      <button class="edit-btn" id="btn-minus">-</button>
       <div class="edit-count" id="result-count">0</div>
       <button class="edit-btn" id="btn-plus">+</button>
     </div>
     <div class="result-stats">
-      <div class="stat-box"><div class="stat-value" id="result-time">0:00</div><div class="stat-label">DURÉE</div></div>
+      <div class="stat-box"><div class="stat-value" id="result-time">0:00</div><div class="stat-label">DUREE</div></div>
       <div class="stat-box"><div class="stat-value" id="result-avg">0</div><div class="stat-label">POMPES/MIN</div></div>
     </div>
-    <button class="confirm-btn" id="btn-confirm">ENVOYER À VULTURES</button>
+    <button class="confirm-btn" id="btn-confirm">ENVOYER A VULTURES</button>
     <div class="send-status" id="send-status"></div>
     <div class="retry-link" id="btn-retry">Recommencer</div>
   </div>
 
   <script>
     // ═══════════════════════════════════════════════════════════════
-    //  VULTURES PUSHUP COUNTER v3
+    //  VULTURES PUSHUP COUNTER v4
     //
-    //  Setup: selfie camera, phone against wall at floor level,
+    //  Setup: selfie camera at floor level against wall,
     //  user in pushup position facing phone.
+    //  Visible: head, shoulders, elbows, hands. Hips NOT visible.
     //
-    //  STRATEGY:
-    //  1. POSTURE GATE — only count when body is horizontal (pushup)
-    //     Detect: shoulder Y ≈ hip Y → horizontal. Big diff → standing.
-    //     This prevents counting squats/bends when standing.
+    //  STRATEGY (simplified from v3):
+    //  - No posture gate (hips not visible, can't detect standing)
+    //  - Track BOTH nose Y AND average shoulder Y
+    //  - Use the average of both as the primary signal
+    //  - Calibrate baseline when face is stable for ~12 frames
+    //  - Detect DOWN when combined signal drops by threshold
+    //  - Detect UP when it returns near baseline
+    //  - Dynamic threshold: after first rep, adapt to actual range
     //
-    //  2. REP COUNTING — track head (nose) Y position in frame.
-    //     Down: head drops in frame (Y increases). Up: head returns.
-    //     Low threshold because front-facing movement is subtle.
-    //
-    //  3. ANTI-JITTER — min hold time in down + cooldown between reps.
+    //  This works because in pushup position facing camera:
+    //  - Down: head+shoulders move DOWN in frame (Y increases)
+    //  - Up: head+shoulders move UP in frame (Y decreases)
     // ═══════════════════════════════════════════════════════════════
 
-    let reps = 0;
-    let timerInterval = null;
-    let startTime = null;
-    let elapsedSeconds = 0;
-    let poseReady = false;
-    let personDetected = false;
-    let silhouetteHidden = false;
-    let finalCount = 0;
-    let phase = 'waiting'; // waiting -> up -> down -> up (+1) -> ...
-    let lastRepTime = 0;
-    let processingFrame = false;
-    let frameLoopActive = false;
-    let currentFacingMode = 'user';
-
-    // Posture gate
-    let isInPushupPosition = false;
-    let pushupPositionFrames = 0;
+    var reps = 0;
+    var timerInterval = null;
+    var startTime = null;
+    var elapsedSeconds = 0;
+    var poseReady = false;
+    var silhouetteHidden = false;
+    var finalCount = 0;
+    var phase = 'calibrating'; // calibrating -> up -> down -> up (+1)
+    var lastRepTime = 0;
+    var processingFrame = false;
+    var frameLoopActive = false;
+    var currentFacingMode = 'user';
+    var downHoldStart = null;
 
     // Calibration
-    let baselineHeadY = null;
-    let calibrationFrames = 0;
-    const CALIBRATION_NEEDED = 10;
+    var baselineY = null;
+    var calibrationFrames = 0;
+    var CALIBRATION_NEEDED = 12;
+    var calibrationValues = [];
 
     // Smoothing
-    const headYHistory = [];
-    const SMOOTH_WINDOW = 5;
+    var signalHistory = [];
+    var SMOOTH_WINDOW = 4;
 
-    // Down hold
-    let downHoldStart = null;
+    // Dynamic threshold
+    // Start with a fixed threshold, then adapt after first rep
+    var DOWN_THRESHOLD = 0.015;   // initial: head must drop 1.5% of frame
+    var UP_THRESHOLD_RATIO = 0.4; // must return to within 40% of the drop
+    var maxDropSeen = 0;          // track the deepest drop we've seen
+    var firstRepDone = false;
 
-    // ── THRESHOLDS ──
-    // Posture: max Y diff between shoulders and hips to be "horizontal"
-    const POSTURE_HORIZONTAL_MAX = 0.12;
-    const POSTURE_FRAMES_NEEDED = 8;
+    // Timing
+    var REP_COOLDOWN_MS = 450;
+    var MIN_DOWN_HOLD_MS = 80;
 
-    // Head Y movement thresholds (fraction of frame height)
-    // Front-facing pushups produce small head movement (~2-5% of frame)
-    const HEAD_DROP_DOWN = 0.018;  // must drop this much for DOWN
-    const HEAD_DROP_UP = 0.008;    // must return within this for UP
+    // DOM
+    var $loading = document.getElementById('loading');
+    var $video = document.getElementById('video-feed');
+    var $canvas = document.getElementById('pose-canvas');
+    var $repCount = document.getElementById('rep-count');
+    var $timer = document.getElementById('timer');
+    var $silhouette = document.getElementById('silhouette-overlay');
+    var $placementMsg = document.getElementById('placement-msg');
+    var $statusPill = document.getElementById('status-pill');
+    var $resultCount = document.getElementById('result-count');
+    var $resultTime = document.getElementById('result-time');
+    var $resultAvg = document.getElementById('result-avg');
+    var $sendStatus = document.getElementById('send-status');
+    var ctx = $canvas.getContext('2d');
 
-    const REP_COOLDOWN_MS = 500;
-    const MIN_DOWN_HOLD_MS = 100;
-
-    // ── DOM ──
-    const $loading = document.getElementById('loading');
-    const $video = document.getElementById('video-feed');
-    const $canvas = document.getElementById('pose-canvas');
-    const $repCount = document.getElementById('rep-count');
-    const $timer = document.getElementById('timer');
-    const $silhouette = document.getElementById('silhouette-overlay');
-    const $placementMsg = document.getElementById('placement-msg');
-    const $statusPill = document.getElementById('status-pill');
-    const $postureBadge = document.getElementById('posture-badge');
-    const $resultCount = document.getElementById('result-count');
-    const $resultTime = document.getElementById('result-time');
-    const $resultAvg = document.getElementById('result-avg');
-    const $sendStatus = document.getElementById('send-status');
-    const ctx = $canvas.getContext('2d');
-
-    // ── Telegram ──
-    const tg = window.Telegram?.WebApp;
-    let tgUserId = null;
-    let tgUserName = null;
-    let tgChatId = null;
+    // Telegram
+    var tg = window.Telegram ? window.Telegram.WebApp : null;
+    var tgUserId = null;
+    var tgUserName = null;
+    var tgChatId = null;
     if (tg) {
       tg.ready(); tg.expand();
       tg.setHeaderColor('#0a0a0a'); tg.setBackgroundColor('#0a0a0a');
       if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
-      tgUserId = tg.initDataUnsafe?.user?.id || null;
-      tgUserName = tg.initDataUnsafe?.user?.first_name || tg.initDataUnsafe?.user?.username || null;
+      var u = tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
+      if (u) { tgUserId = u.id; tgUserName = u.first_name || u.username; }
       tgChatId = tgUserId;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  HELPERS
-    // ═══════════════════════════════════════════════════════════════
     function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
       document.getElementById(id).classList.add('active');
     }
     function smoothValue(arr, value, maxLen) {
       arr.push(value);
       if (arr.length > maxLen) arr.shift();
-      return arr.reduce((a, b) => a + b, 0) / arr.length;
+      var sum = 0; for (var i = 0; i < arr.length; i++) sum += arr[i];
+      return sum / arr.length;
     }
     function showStatus(type, text, persist) {
       $statusPill.className = 'status-pill ' + (type === 'down' ? 'down' : 'up');
       $statusPill.textContent = text;
       $statusPill.classList.remove('hidden');
-      if (!persist) setTimeout(() => $statusPill.classList.add('hidden'), 400);
+      if (!persist) setTimeout(function() { $statusPill.classList.add('hidden'); }, 400);
     }
     function bumpCounter() {
       $repCount.classList.add('bump');
-      setTimeout(() => $repCount.classList.remove('bump'), 150);
-      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      setTimeout(function() { $repCount.classList.remove('bump'); }, 150);
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     }
     function startTimer() {
       startTime = Date.now();
-      timerInterval = setInterval(() => {
+      timerInterval = setInterval(function() {
         elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-        const m = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
-        const s = String(elapsedSeconds % 60).padStart(2, '0');
+        var m = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+        var s = String(elapsedSeconds % 60).padStart(2, '0');
         $timer.textContent = m + ':' + s;
       }, 200);
     }
     function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
 
     // ═══════════════════════════════════════════════════════════════
-    //  POSE UTILITIES
+    //  POSE HELPERS
     // ═══════════════════════════════════════════════════════════════
     function vis(lm, i) { return lm[i] && (lm[i].visibility || 0) > 0.5; }
-    function hasUpperBody(lm) { return vis(lm, 0) && vis(lm, 11) && vis(lm, 12); }
-    function getShoulderMidY(lm) {
-      return (vis(lm, 11) && vis(lm, 12)) ? (lm[11].y + lm[12].y) / 2 : null;
-    }
-    function getHipMidY(lm) {
-      return (vis(lm, 23) && vis(lm, 24)) ? (lm[23].y + lm[24].y) / 2 : null;
-    }
-    function getHeadY(lm) {
-      if (vis(lm, 0)) return lm[0].y;
-      if (vis(lm, 5) && vis(lm, 2)) return (lm[5].y + lm[2].y) / 2;
-      return null;
-    }
-    function getShoulderWidth(lm) {
-      return (vis(lm, 11) && vis(lm, 12)) ? Math.abs(lm[11].x - lm[12].x) : null;
+
+    // Combined signal: average Y of nose + shoulders
+    // This is more stable than nose alone (nose jitters with head tilt)
+    function getCombinedY(lm) {
+      var noseOk = vis(lm, 0);
+      var lShOk = vis(lm, 11);
+      var rShOk = vis(lm, 12);
+
+      if (!noseOk && !lShOk && !rShOk) return null;
+
+      var values = [];
+      var weights = [];
+
+      if (noseOk) { values.push(lm[0].y); weights.push(2); } // nose weighted more
+      if (lShOk) { values.push(lm[11].y); weights.push(1); }
+      if (rShOk) { values.push(lm[12].y); weights.push(1); }
+
+      var totalWeight = 0;
+      var weightedSum = 0;
+      for (var i = 0; i < values.length; i++) {
+        weightedSum += values[i] * weights[i];
+        totalWeight += weights[i];
+      }
+      return weightedSum / totalWeight;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  POSTURE DETECTION: pushup vs standing
-    // ═══════════════════════════════════════════════════════════════
-    function detectPosture(lm) {
-      const shoulderY = getShoulderMidY(lm);
-      const hipY = getHipMidY(lm);
-
-      if (shoulderY !== null && hipY !== null) {
-        // Horizontal body: shoulders ≈ hips in Y
-        const yDiff = Math.abs(shoulderY - hipY);
-        if (yDiff < POSTURE_HORIZONTAL_MAX) {
-          pushupPositionFrames++;
-        } else {
-          pushupPositionFrames = Math.max(0, pushupPositionFrames - 2);
-        }
-      } else {
-        // Can't see hips — if shoulders are wide (close to cam), likely pushup
-        const sw = getShoulderWidth(lm);
-        if (sw !== null && sw > 0.20) {
-          pushupPositionFrames++;
-        } else {
-          pushupPositionFrames = Math.max(0, pushupPositionFrames - 1);
-        }
-      }
-
-      const wasPushup = isInPushupPosition;
-      isInPushupPosition = pushupPositionFrames >= POSTURE_FRAMES_NEEDED;
-
-      if (isInPushupPosition) {
-        $postureBadge.className = 'posture-badge pushup';
-        $postureBadge.textContent = '💪 POSITION POMPE';
-      } else {
-        $postureBadge.className = 'posture-badge standing';
-        $postureBadge.textContent = 'DEBOUT';
-      }
-
-      // Reset calibration on entering pushup position
-      if (isInPushupPosition && !wasPushup) {
-        baselineHeadY = null;
-        calibrationFrames = 0;
-        phase = 'waiting';
-        headYHistory.length = 0;
-      }
-      return isInPushupPosition;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  SKELETON DRAWING
+    //  SKELETON
     // ═══════════════════════════════════════════════════════════════
     function drawSkeleton(lm) {
       ctx.clearRect(0, 0, $canvas.width, $canvas.height);
       var mirror = currentFacingMode === 'user';
       var mapX = function(x) { return mirror ? (1 - x) * $canvas.width : x * $canvas.width; };
       var mapY = function(y) { return y * $canvas.height; };
-      var conns = [[11,13],[13,15],[12,14],[14,16],[11,12],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
-      ctx.strokeStyle = isInPushupPosition ? 'rgba(232,255,71,.66)' : 'rgba(255,71,71,.4)';
+      var conns = [[11,13],[13,15],[12,14],[14,16],[11,12],[11,23],[12,24],[23,24]];
+      ctx.strokeStyle = 'rgba(232,255,71,.66)';
       ctx.lineWidth = 3;
       conns.forEach(function(c) {
         var a = lm[c[0]], b = lm[c[1]];
-        if ((a?.visibility||0) > 0.5 && (b?.visibility||0) > 0.5) {
+        if ((a && a.visibility||0) > 0.5 && (b && b.visibility||0) > 0.5) {
           ctx.beginPath(); ctx.moveTo(mapX(a.x), mapY(a.y)); ctx.lineTo(mapX(b.x), mapY(b.y)); ctx.stroke();
         }
       });
-      var jColor = isInPushupPosition ? 'rgba(232,255,71,.95)' : 'rgba(255,71,71,.6)';
-      [0,11,12,13,14,15,16,23,24].forEach(function(i) {
+      [0,11,12,13,14,15,16].forEach(function(i) {
         var p = lm[i];
-        if ((p?.visibility||0) > 0.5) {
+        if (p && (p.visibility||0) > 0.5) {
           ctx.beginPath(); ctx.arc(mapX(p.x), mapY(p.y), i===0?7:5, 0, 2*Math.PI);
-          ctx.fillStyle = jColor; ctx.fill();
+          ctx.fillStyle = 'rgba(232,255,71,.95)'; ctx.fill();
         }
       });
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  MAIN POSE CALLBACK
+    //  MAIN CALLBACK
     // ═══════════════════════════════════════════════════════════════
     function onResults(results) {
       $canvas.width = $video.videoWidth || 640;
@@ -373,87 +325,107 @@
       ctx.clearRect(0, 0, $canvas.width, $canvas.height);
 
       if (!results.poseLandmarks) {
-        personDetected = false;
         if (!silhouetteHidden) {
-          $placementMsg.textContent = 'Mets-toi en position de pompe';
+          $placementMsg.textContent = 'Place-toi face a la camera';
           $silhouette.classList.remove('hidden');
         }
         return;
       }
 
       var lm = results.poseLandmarks;
-      personDetected = true;
       drawSkeleton(lm);
 
-      if (!hasUpperBody(lm)) {
-        $placementMsg.textContent = 'Rapproche-toi, on doit voir ta tete et tes epaules';
+      // Get combined Y signal
+      var rawY = getCombinedY(lm);
+      if (rawY === null) {
+        $placementMsg.textContent = 'On doit voir ta tete et tes epaules';
         return;
       }
 
+      var signalY = smoothValue(signalHistory, rawY, SMOOTH_WINDOW);
+
+      // Hide silhouette
       if (!silhouetteHidden) { $silhouette.classList.add('hidden'); silhouetteHidden = true; }
       if (!startTime) startTimer();
 
-      // Step 1: posture gate
-      var inPushup = detectPosture(lm);
+      // Nose and shoulder Y for debug
+      var noseY = vis(lm, 0) ? lm[0].y : -1;
+      var shY = (vis(lm, 11) && vis(lm, 12)) ? ((lm[11].y + lm[12].y) / 2) : -1;
 
-      var headYRaw = getHeadY(lm);
-      if (headYRaw === null) return;
-      var headY = smoothValue(headYHistory, headYRaw, SMOOTH_WINDOW);
+      var drop = baselineY !== null ? (signalY - baselineY) : 0;
+      var currentThresh = firstRepDone ? Math.max(DOWN_THRESHOLD, maxDropSeen * 0.45) : DOWN_THRESHOLD;
+      var upThresh = firstRepDone ? (maxDropSeen * UP_THRESHOLD_RATIO) : (DOWN_THRESHOLD * 0.35);
 
-      // Debug
-      var drop = baselineHeadY !== null ? (headY - baselineHeadY) : 0;
-      var d1 = document.getElementById('dbg-posture');
-      var d2 = document.getElementById('dbg-heady');
+      // Debug HUD
+      var d1 = document.getElementById('dbg-nosey');
+      var d2 = document.getElementById('dbg-shouldery');
       var d3 = document.getElementById('dbg-baseline');
       var d4 = document.getElementById('dbg-drop');
-      var d5 = document.getElementById('dbg-phase');
-      var d6 = document.getElementById('dbg-reps');
-      if (d1) d1.textContent = inPushup ? 'PUSHUP' : 'STANDING';
-      if (d2) d2.textContent = headY.toFixed(4);
-      if (d3) d3.textContent = baselineHeadY !== null ? baselineHeadY.toFixed(4) : '-';
+      var d5 = document.getElementById('dbg-thresh');
+      var d6 = document.getElementById('dbg-phase');
+      var d7 = document.getElementById('dbg-reps');
+      if (d1) d1.textContent = noseY >= 0 ? noseY.toFixed(4) : '-';
+      if (d2) d2.textContent = shY >= 0 ? shY.toFixed(4) : '-';
+      if (d3) d3.textContent = baselineY !== null ? baselineY.toFixed(4) : '-';
       if (d4) d4.textContent = drop.toFixed(4);
-      if (d5) d5.textContent = phase;
-      if (d6) d6.textContent = reps;
+      if (d5) d5.textContent = 'D:' + currentThresh.toFixed(4) + ' U:' + upThresh.toFixed(4);
+      if (d6) d6.textContent = phase;
+      if (d7) d7.textContent = reps;
 
-      if (!inPushup) {
-        $placementMsg.textContent = 'Mets-toi en position de pompe';
-        return;
-      }
-
-      // Step 2: calibrate baseline head Y in "up" position
-      if (phase === 'waiting') {
+      // ── CALIBRATION ──
+      if (phase === 'calibrating') {
+        calibrationValues.push(signalY);
         calibrationFrames++;
-        baselineHeadY = baselineHeadY === null
-          ? headY
-          : ((baselineHeadY * (calibrationFrames - 1)) + headY) / calibrationFrames;
 
-        var remaining = Math.max(0, CALIBRATION_NEEDED - calibrationFrames);
-        if (remaining > 0) {
-          $placementMsg.textContent = 'Reste en haut, bras tendus... ' + remaining;
-          showStatus('up', 'CALIBRATION', true);
-        }
+        // Check stability: are the last N values close together?
         if (calibrationFrames >= CALIBRATION_NEEDED) {
-          phase = 'up';
-          $placementMsg.textContent = 'Fais tes pompes !';
-          $statusPill.classList.add('hidden');
-          setTimeout(function() { $placementMsg.textContent = ''; }, 1500);
+          var recent = calibrationValues.slice(-CALIBRATION_NEEDED);
+          var min = Math.min.apply(null, recent);
+          var max = Math.max.apply(null, recent);
+          var range = max - min;
+
+          if (range < 0.02) {
+            // Stable! Set baseline
+            var sum = 0; for (var i = 0; i < recent.length; i++) sum += recent[i];
+            baselineY = sum / recent.length;
+            phase = 'up';
+            $placementMsg.textContent = 'Fais tes pompes !';
+            $statusPill.classList.add('hidden');
+            setTimeout(function() { $placementMsg.textContent = ''; }, 1500);
+          } else {
+            // Not stable yet, keep collecting
+            $placementMsg.textContent = 'Reste immobile, bras tendus...';
+            showStatus('up', 'CALIBRATION', true);
+            // Slide window
+            if (calibrationValues.length > 30) calibrationValues.shift();
+          }
+        } else {
+          var remaining = CALIBRATION_NEEDED - calibrationFrames;
+          $placementMsg.textContent = 'Reste immobile... ' + remaining;
+          showStatus('up', 'CALIBRATION', true);
         }
         return;
       }
 
       $placementMsg.textContent = '';
       var now = Date.now();
-      var headDrop = headY - baselineHeadY; // positive = head went DOWN
 
-      // Step 3: state machine
+      // ── STATE MACHINE ──
       if (phase === 'up') {
-        if (headDrop > HEAD_DROP_DOWN) {
+        // Waiting for signal to DROP (head goes down = Y increases)
+        if (drop > currentThresh) {
           phase = 'down';
           downHoldStart = now;
           showStatus('down', '↓ DOWN');
+          // Track max drop
+          if (drop > maxDropSeen) maxDropSeen = drop;
         }
       } else if (phase === 'down') {
-        if (headDrop < HEAD_DROP_UP) {
+        // Track deeper drops while in down phase
+        if (drop > maxDropSeen) maxDropSeen = drop;
+
+        // Waiting for signal to come back UP (Y decreases back toward baseline)
+        if (drop < upThresh) {
           var heldOk = downHoldStart && (now - downHoldStart >= MIN_DOWN_HOLD_MS);
           var cooledOk = (now - lastRepTime >= REP_COOLDOWN_MS);
           if (heldOk && cooledOk) {
@@ -461,12 +433,13 @@
             $repCount.textContent = reps;
             bumpCounter();
             lastRepTime = now;
+            firstRepDone = true;
             showStatus('up', '↑ ' + reps);
           }
           phase = 'up';
           downHoldStart = null;
-          // Recalibrate baseline slowly to handle drift
-          baselineHeadY = baselineHeadY * 0.85 + headY * 0.15;
+          // Gentle baseline recalibration to handle drift
+          baselineY = baselineY * 0.9 + signalY * 0.1;
         }
       }
     }
@@ -481,14 +454,9 @@
         pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: false, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
         pose.onResults(onResults);
         poseReady = true;
-      } catch (err) {
-        console.error('MediaPipe error:', err);
-        alert('Impossible de charger MediaPipe.');
-      } finally {
-        $loading.classList.add('hidden');
-      }
+      } catch (err) { console.error('MediaPipe error:', err); alert('Impossible de charger MediaPipe.'); }
+      finally { $loading.classList.add('hidden'); }
     }
-
     async function getBestCameraStream() {
       try {
         currentFacingMode = 'user';
@@ -498,7 +466,6 @@
         return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
       }
     }
-
     async function startCamera() {
       var stream = await getBestCameraStream();
       $video.srcObject = stream;
@@ -506,7 +473,6 @@
       frameLoopActive = true;
       if (!processingFrame) { processingFrame = true; processFrameLoop(); }
     }
-
     async function processFrameLoop() {
       if (!frameLoopActive) { processingFrame = false; return; }
       try {
@@ -516,7 +482,6 @@
       } catch (err) { console.error('Pose error:', err); }
       requestAnimationFrame(processFrameLoop);
     }
-
     function stopCamera() {
       frameLoopActive = false;
       var stream = $video.srcObject;
@@ -535,8 +500,7 @@
       $resultTime.textContent = m + ':' + String(s).padStart(2, '0');
       var ppm = elapsedSeconds > 0 ? Math.round(finalCount / (elapsedSeconds / 60)) : 0;
       $resultAvg.textContent = ppm;
-      $sendStatus.textContent = '';
-      $sendStatus.className = 'send-status';
+      $sendStatus.textContent = ''; $sendStatus.className = 'send-status';
       showScreen('result-screen');
     }
 
@@ -564,16 +528,17 @@
         if (resp.ok && data.success) {
           $sendStatus.textContent = '✅ Envoye au bot !';
           $sendStatus.className = 'send-status success';
-          setTimeout(function() { if (tg?.close) tg.close(); }, 1500);
+          setTimeout(function() { if (tg && tg.close) tg.close(); }, 1500);
         } else {
           throw new Error(data.error || 'Erreur serveur');
         }
       } catch (err) {
         console.error('Send error:', err);
-        $sendStatus.textContent = '❌ Erreur — reessaie';
+        $sendStatus.textContent = '❌ Erreur - reessaie';
         $sendStatus.className = 'send-status error';
         $btn.disabled = false;
-        if (tg?.sendData) {
+        // Fallback: sendData after delay
+        if (tg && tg.sendData) {
           setTimeout(function() {
             $sendStatus.textContent = '⚠️ Envoi via fallback Telegram...';
             tg.sendData(JSON.stringify({ reps: finalCount, duration_seconds: elapsedSeconds, user_name: tgUserName, method: 'fallback' }));
@@ -587,24 +552,22 @@
     // ═══════════════════════════════════════════════════════════════
     function resetSessionState() {
       reps = 0; elapsedSeconds = 0; startTime = null; finalCount = 0;
-      personDetected = false; silhouetteHidden = false;
-      phase = 'waiting'; lastRepTime = 0; downHoldStart = null;
-      isInPushupPosition = false; pushupPositionFrames = 0;
-      baselineHeadY = null; calibrationFrames = 0;
-      headYHistory.length = 0;
+      silhouetteHidden = false;
+      phase = 'calibrating'; lastRepTime = 0; downHoldStart = null;
+      baselineY = null; calibrationFrames = 0; calibrationValues = [];
+      signalHistory = [];
+      maxDropSeen = 0; firstRepDone = false;
       $repCount.textContent = '0'; $timer.textContent = '00:00';
       $silhouette.classList.remove('hidden');
       $placementMsg.textContent = 'Mets-toi en position de pompe';
       $statusPill.classList.add('hidden');
       $sendStatus.textContent = '';
-      $postureBadge.className = 'posture-badge standing';
-      $postureBadge.textContent = 'DEBOUT';
       ctx.clearRect(0, 0, $canvas.width, $canvas.height);
     }
 
     document.getElementById('btn-start').addEventListener('click', async function() {
       try { resetSessionState(); showScreen('camera-screen'); await startCamera(); }
-      catch (err) { console.error('Camera error:', err); alert('Impossible d\'acceder a la camera.'); showScreen('start-screen'); }
+      catch (err) { console.error('Camera error:', err); alert('Camera inaccessible.'); showScreen('start-screen'); }
     });
     document.getElementById('btn-stop').addEventListener('click', showResult);
     document.getElementById('btn-minus').addEventListener('click', function() { if (finalCount > 0) { finalCount--; $resultCount.textContent = finalCount; } });
@@ -614,5 +577,6 @@
 
     initMediaPipe();
   </script>
+
 </body>
 </html>
